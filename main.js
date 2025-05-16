@@ -17,12 +17,24 @@ function createMainWindow() {
       preload: path.join(__dirname, 'preload.js')
     }
   })
-
+  // mainWindow.setMenu(null)
   mainWindow.loadFile('login.html')
 }
 
-const register = () => {
+const register = async (credentials) => {
+  if (!credentials) return { error: true }
+  try {
+    const fsUsers = await fs.readFile('./credentials/users.json', 'utf-8');
+    const users = JSON.parse(fsUsers)
+    // console.log(users)
+    users.push({ name: credentials.name, email: credentials.email, password: credentials.password })
+    const fsUpdated = await fs.writeFile('./credentials/users.json', JSON.stringify(users))
+    console.log(fsUpdated)
+    mainWindow.loadFile('login.html')
+  } catch (error) {
 
+  }
+  console.log(credentials)
 }
 
 const login = async (credentials) => {
@@ -48,6 +60,9 @@ const logout = () => {
 
 ipcMain.handle('login', async (_, credentials) => {
   return login(credentials)
+})
+ipcMain.handle('register', async (_, credentials) => {
+  return register(credentials)
 })
 
 app.whenReady().then(createMainWindow)
