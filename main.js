@@ -21,13 +21,20 @@ function createMainWindow() {
   mainWindow.loadFile('login.html')
 }
 
+
+async function generateHash(password) {
+  const saltRounds = 5
+  const hash = await bcrypt.hash(password, saltRounds);
+  return hash
+}
+
 const register = async (credentials) => {
   if (!credentials) return { error: true }
   try {
     const fsUsers = await fs.readFile('./credentials/users.json', 'utf-8');
     const users = JSON.parse(fsUsers)
     // console.log(users)
-    users.push({ name: credentials.name, email: credentials.email, password: credentials.password })
+    users.push({ name: credentials.name, email: credentials.email, password: await generateHash(credentials.password) })
     const fsUpdated = await fs.writeFile('./credentials/users.json', JSON.stringify(users))
     console.log(fsUpdated)
     mainWindow.loadFile('login.html')
@@ -41,13 +48,23 @@ const login = async (credentials) => {
   try {
     const response = await fs.readFile('./credentials/users.json', 'utf-8')
     const users = JSON.parse(response)
-    const isValidUser = users.find((user) => user.email === credentials.email && user.password === credentials.password) ?? false
-    console.log(isValidUser)
-    if (isValidUser) {
-      mainWindow.loadFile('index.html')
-    } else {
-      return { error: true }
+
+    const user = users.find((user) => user.email === credentials.email) ?? false
+
+    if (user) {
+      const match = await bcrypt.compare(credentials.password, user.password)
+      if (match) {
+        mainWindow.loadFile('index.html')
+      } else {
+        return { error: true }
+      }
     }
+
+    // console.log(isValidUser)
+    // if (isValidUser) {
+    // } else {
+    //   return { error: true }
+    // }
   } catch (error) {
     throw new Error(error)
   }
